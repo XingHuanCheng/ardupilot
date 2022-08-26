@@ -957,6 +957,7 @@ void AC_PosControl::update_z_controller()
 
     const float curr_alt = _inav.get_position().z;
     // calculate the target velocity correction
+    // 计算目标速度修正
     float pos_target_zf = _pos_target.z;
 
     _vel_target.z = _p_pos_z.update_all(pos_target_zf, curr_alt, _limit.pos_down, _limit.pos_up);
@@ -968,6 +969,7 @@ void AC_PosControl::update_z_controller()
     _vel_target.z += _vel_desired.z;
 
     // Velocity Controller
+    // 速度控制器
 
     const Vector3f& curr_vel = _inav.get_velocity();
     _accel_target.z = _pid_vel_z.update_all(_vel_target.z, curr_vel.z, _motors.limit.throttle_lower, _motors.limit.throttle_upper);
@@ -979,6 +981,7 @@ void AC_PosControl::update_z_controller()
     // Acceleration Controller
 
     // Calculate vertical acceleration
+    // 计算垂直加速度
     const float z_accel_meas = get_z_accel_cmss();
 
     // ensure imax is always large enough to overpower hover throttle
