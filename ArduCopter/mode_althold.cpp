@@ -23,29 +23,37 @@ bool ModeAltHold::init(bool ignore_checks)
 
 // althold_run - runs the althold controller
 // should be called at 100hz or more
+// althold_run-运行定稿控制器
 void ModeAltHold::run()
 {
     // set vertical speed and acceleration limits
+    // 设置垂直速度和加速度限制
     pos_control->set_max_speed_accel_z(-get_pilot_speed_dn(), g.pilot_speed_up, g.pilot_accel_z);
 
     // apply SIMPLE mode transform to pilot inputs
+    // 对飞行员的输入施加简单的模式变换
     update_simple_mode();
 
     // get pilot desired lean angles
+    // 得到飞行员期望的倾斜角
     float target_roll, target_pitch;
     get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, attitude_control->get_althold_lean_angle_max());
 
     // get pilot's desired yaw rate
+    // 得到飞行员期望的偏航速度
     float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
 
     // get pilot desired climb rate
+    // 得到飞行员期望的爬升速度
     float target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
     target_climb_rate = constrain_float(target_climb_rate, -get_pilot_speed_dn(), g.pilot_speed_up);
 
     // Alt Hold State Machine Determination
+    // 定高状态机测定
     AltHoldModeState althold_state = get_alt_hold_state(target_climb_rate);
 
     // Alt Hold State Machine
+    // 定高状态机
     switch (althold_state) {
 
     case AltHold_MotorStopped:
@@ -65,14 +73,17 @@ void ModeAltHold::run()
 
     case AltHold_Takeoff:
         // initiate take-off
+        // 开始起飞
         if (!takeoff.running()) {
             takeoff.start(constrain_float(g.pilot_takeoff_alt,0.0f,1000.0f));
         }
 
         // get avoidance adjusted climb rate
+        // 获得规避调整过的爬升速度
         target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
 
         // set position controller targets adjusted for pilot input
+        // 设置飞行员输入调整过的位置控制器目标
         takeoff.do_pilot_takeoff(target_climb_rate);
         break;
 
@@ -81,23 +92,30 @@ void ModeAltHold::run()
 
 #if AC_AVOID_ENABLED == ENABLED
         // apply avoidance
+        // 申请避障
+        // 当避障开关开启时会进入这里
         copter.avoid.adjust_roll_pitch(target_roll, target_pitch, copter.aparm.angle_max);
 #endif
 
         // get avoidance adjusted climb rate
+        // 获得规避调整过的爬升速度
         target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
 
         // update the vertical offset based on the surface measurement
+        // 根据地面测试数据更新垂直偏移量
         copter.surface_tracking.update_surface_offset();
 
         // Send the commanded climb rate to the position controller
+        // 将所需要的爬升速率发送给位置控制器
         pos_control->set_pos_target_z_from_climb_rate_cm(target_climb_rate);
         break;
     }
 
     // call attitude controller
+    // 调用姿态控制器
     attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
 
     // run the vertical position controller and set output throttle
+    // 运行垂直速率控制器并设置输出油门
     pos_control->update_z_controller();
 }
