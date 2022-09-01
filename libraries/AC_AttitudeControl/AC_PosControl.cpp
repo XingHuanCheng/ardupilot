@@ -963,9 +963,12 @@ void AC_PosControl::update_z_controller()
     _vel_target.z = _p_pos_z.update_all(pos_target_zf, curr_alt, _limit.pos_down, _limit.pos_up);
     _vel_target.z *= AP::ahrs_navekf().getEkfControlScaleZ();
 
+    // hal.console->printf("_p_pos_z.kP=%f\n",(float)_p_pos_z.kP());
+    // hal.console->printf("\n");
     _pos_target.z = pos_target_zf;
 
     // add feed forward component
+    // 添加前馈控件
     _vel_target.z += _vel_desired.z;
 
     // Velocity Controller
@@ -976,9 +979,11 @@ void AC_PosControl::update_z_controller()
     _accel_target.z *= AP::ahrs_navekf().getEkfControlScaleZ();
 
     // add feed forward component
+    // 添加前馈控件
     _accel_target.z += _accel_desired.z;
 
     // Acceleration Controller
+    // 加速度控制器
 
     // Calculate vertical acceleration
     // 计算垂直加速度
