@@ -326,27 +326,63 @@ void AC_AttitudeControl_Multi::update_throttle_rpy_mix()
     _throttle_rpy_mix = constrain_float(_throttle_rpy_mix, 0.1f, AC_ATTITUDE_CONTROL_MAX);
 }
 
+// 角速率控制
 void AC_AttitudeControl_Multi::rate_controller_run()
 {
     // move throttle vs attitude mixing towards desired (called from here because this is conveniently called on every iteration)
     // 将油门与姿态混合移动到期望的方向(从这里调用，因为这在每次迭代中都很方便地调用)
     update_throttle_rpy_mix();
 
+    // _ang_vel_body:这表示体坐标系中弧度/每秒的角速度，用于角速度控制器
+    // _sysid_ang_vel_body:这是体坐标系内弧度/每秒的角速度，通过系统识别模式添加到输出角姿态控制器中。它在使用后立即被重置为零。
     _ang_vel_body += _sysid_ang_vel_body;
 
+    // 得到测量值
     Vector3f gyro_latest = _ahrs.get_gyro_latest();
 
     // roll PID控制器计算出电机的输出，传递给电机控制器
+    // 得到_motors._roll_in值
     _motors.set_roll(get_rate_roll_pid().update_all(_ang_vel_body.x, gyro_latest.x, _motors.limit.roll) + _actuator_sysid.x);
     _motors.set_roll_ff(get_rate_roll_pid().get_ff());
 
     // pitch PID控制器计算出电机的输出，传递给电机控制器
+    // 得到_motors._pitch_in值
     _motors.set_pitch(get_rate_pitch_pid().update_all(_ang_vel_body.y, gyro_latest.y, _motors.limit.pitch) + _actuator_sysid.y);
     _motors.set_pitch_ff(get_rate_pitch_pid().get_ff());
 
     // yaw PID控制器计算出电机的输出，传递给电机控制器
+    // 得到_motors._yaw_in值
     _motors.set_yaw(get_rate_yaw_pid().update_all(_ang_vel_body.z, gyro_latest.z, _motors.limit.yaw) + _actuator_sysid.z);
     _motors.set_yaw_ff(get_rate_yaw_pid().get_ff()*_feedforward_scalar);
+
+    // 打印三个角速率PID控制器的相关调参参数
+    // hal.console->printf("Roll.P=%f\n", (float)get_rate_roll_pid().kP());
+    // hal.console->printf("Roll.I=%f\n", (float)get_rate_roll_pid().kI());
+    // hal.console->printf("Roll.D=%f\n", (float)get_rate_roll_pid().kD());
+    // hal.console->printf("Roll.MAX=%f\n", (float)get_rate_roll_pid().kIMAX());
+    // hal.console->printf("Roll.FLTE=%f\n", (float)get_rate_roll_pid().filt_E_hz());
+    // hal.console->printf("Roll.FLTD=%f\n", (float)get_rate_roll_pid().filt_D_hz());
+    // hal.console->printf("Roll.FLTT=%f\n", (float)get_rate_roll_pid().filt_T_hz());
+
+    // hal.console->printf("Pitch.P=%f\n", (float)get_rate_pitch_pid().kP());
+    // hal.console->printf("Pitch.I=%f\n", (float)get_rate_pitch_pid().kI());
+    // hal.console->printf("Pitch.D=%f\n", (float)get_rate_pitch_pid().kD());
+    // hal.console->printf("Pitch.MAX=%f\n", (float)get_rate_pitch_pid().kIMAX());
+    // hal.console->printf("Pitch.MAX=%f\n", (float)get_rate_pitch_pid().kIMAX());
+    // hal.console->printf("Pitch.FLTE=%f\n", (float)get_rate_pitch_pid().filt_E_hz());
+    // hal.console->printf("Pitch.FLTD=%f\n", (float)get_rate_pitch_pid().filt_D_hz());
+    // hal.console->printf("Pitch.FLTT=%f\n", (float)get_rate_pitch_pid().filt_T_hz());
+
+    // hal.console->printf("Yaw.P=%f\n", (float)get_rate_yaw_pid().kP());
+    // hal.console->printf("Yaw.I=%f\n", (float)get_rate_yaw_pid().kI());
+    // hal.console->printf("Yaw.D=%f\n", (float)get_rate_yaw_pid().kD());
+    // hal.console->printf("Yaw.MAX=%f\n", (float)get_rate_yaw_pid().kIMAX());
+    // hal.console->printf("Yaw.MAX=%f\n", (float)get_rate_yaw_pid().kIMAX());
+    // hal.console->printf("Yaw.FLTE=%f\n", (float)get_rate_yaw_pid().filt_E_hz());
+    // hal.console->printf("Yaw.FLTD=%f\n", (float)get_rate_yaw_pid().filt_D_hz());
+    // hal.console->printf("Yaw.FLTT=%f\n", (float)get_rate_yaw_pid().filt_T_hz());
+
+    // hal.console->printf("\n");
 
     // 数据使用后清0
     _sysid_ang_vel_body.zero();

@@ -23,7 +23,7 @@ bool ModeAltHold::init(bool ignore_checks)
 
 // althold_run - runs the althold controller
 // should be called at 100hz or more
-// althold_run-运行定稿控制器
+// althold_run-运行定高控制器
 void ModeAltHold::run()
 {
     // set vertical speed and acceleration limits
