@@ -252,50 +252,63 @@ void AC_AttitudeControl::input_quaternion(Quaternion attitude_desired_quat)
 void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds)
 {
     // Convert from centidegrees on public interface to radians
+    // 将公共界面上的分度转换为弧度
     float euler_roll_angle = radians(euler_roll_angle_cd * 0.01f);
     float euler_pitch_angle = radians(euler_pitch_angle_cd * 0.01f);
     float euler_yaw_rate = radians(euler_yaw_rate_cds * 0.01f);
 
     // calculate the attitude target euler angles
+    // 计算目标高度欧拉角
     _attitude_target.to_euler(_euler_angle_target.x, _euler_angle_target.y, _euler_angle_target.z);
 
     // Add roll trim to compensate tail rotor thrust in heli (will return zero on multirotors)
+    // 增加侧倾补偿直升机尾桨推力(多旋翼会回零)
     euler_roll_angle += get_roll_trim_rad();
 
     if (_rate_bf_ff_enabled) {
         // translate the roll pitch and yaw acceleration limits to the euler axis
+        // 把横摇、俯仰和偏航加速度限制转换成欧拉轴
         const Vector3f euler_accel = euler_accel_limit(_euler_angle_target, Vector3f{get_accel_roll_max_radss(), get_accel_pitch_max_radss(), get_accel_yaw_max_radss()});
 
         // When acceleration limiting and feedforward are enabled, the sqrt controller is used to compute an euler
         // angular velocity that will cause the euler angle to smoothly stop at the input angle with limited deceleration
         // and an exponential decay specified by smoothing_gain at the end.
+        // 当加速度限制和前馈被启用时，根号控制器用于计算欧拉角速度，该角速度将使欧拉角平滑地停止在输入角上，并具有有限的减速和最后平滑增益指定的指数衰减。
         _euler_rate_target.x = input_shaping_angle(wrap_PI(euler_roll_angle - _euler_angle_target.x), _input_tc, euler_accel.x, _euler_rate_target.x, _dt);
         _euler_rate_target.y = input_shaping_angle(wrap_PI(euler_pitch_angle - _euler_angle_target.y), _input_tc, euler_accel.y, _euler_rate_target.y, _dt);
 
         // When yaw acceleration limiting is enabled, the yaw input shaper constrains angular acceleration about the yaw axis, slewing
         // the output rate towards the input rate.
+        // 当偏航加速度限制启用时，偏航输入成形器会限制偏航轴的角加速度，使输出速率朝向输入速率。
         _euler_rate_target.z = input_shaping_ang_vel(_euler_rate_target.z, euler_yaw_rate, euler_accel.z, _dt);
 
         // Convert euler angle derivative of desired attitude into a body-frame angular velocity vector for feedforward
+        // 将期望姿态的欧拉角导数转换为体-架角速度矢量进行前馈
         euler_rate_to_ang_vel(_euler_angle_target, _euler_rate_target, _ang_vel_target);
         // Limit the angular velocity
+        // 限制角速度
         ang_vel_limit(_ang_vel_target, radians(_ang_vel_roll_max), radians(_ang_vel_pitch_max), radians(_ang_vel_yaw_max));
         // Convert body-frame angular velocity into euler angle derivative of desired attitude
+        // 将体-架角速度转换为期望姿态的欧拉角导数
         ang_vel_to_euler_rate(_euler_angle_target, _ang_vel_target, _euler_rate_target);
     } else {
         // When feedforward is not enabled, the target euler angle is input into the target and the feedforward rate is zeroed.
+        // 不启用前馈时，将目标欧拉角输入目标，前馈速率归零。
         _euler_angle_target.x = euler_roll_angle;
         _euler_angle_target.y = euler_pitch_angle;
         _euler_angle_target.z += euler_yaw_rate * _dt;
         // Compute quaternion target attitude
+        // 计算四元数目标姿态
         _attitude_target.from_euler(_euler_angle_target.x, _euler_angle_target.y, _euler_angle_target.z);
 
         // Set rate feedforward requests to zero
+        // 将前馈请求速率设置为零
         _euler_rate_target.zero();
         _ang_vel_target.zero();
     }
 
     // Call quaternion attitude controller
+    // 调用四元数姿态控制器
     attitude_controller_run_quat();
 }
 
@@ -960,6 +973,7 @@ bool AC_AttitudeControl::ang_vel_to_euler_rate(const Vector3f& euler_rad, const 
 }
 
 // Update rate_target_ang_vel using attitude_error_rot_vec_rad
+// 利用姿态误差对目标进行更新
 Vector3f AC_AttitudeControl::update_ang_vel_target_from_att_error(const Vector3f &attitude_error_rot_vec_rad)
 {
     Vector3f rate_target_ang_vel;
@@ -986,6 +1000,10 @@ Vector3f AC_AttitudeControl::update_ang_vel_target_from_att_error(const Vector3f
     } else {
         rate_target_ang_vel.z = _p_angle_yaw.kP() * attitude_error_rot_vec_rad.z;
     }
+    // hal.console->printf("Roll_P=%f\n",(float)_p_angle_roll.kP());
+    // hal.console->printf("Pitch_P=%f\n",(float)_p_angle_pitch.kP());
+    // hal.console->printf("Yaw_P=%f\n",(float)_p_angle_yaw.kP());
+    // hal.console->printf("\n");
     return rate_target_ang_vel;
 }
 
