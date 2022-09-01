@@ -980,8 +980,8 @@ void AC_PosControl::update_z_controller()
     _accel_target.z = _pid_vel_z.update_all(_vel_target.z, curr_vel.z, _motors.limit.throttle_lower, _motors.limit.throttle_upper);
     _accel_target.z *= AP::ahrs_navekf().getEkfControlScaleZ();
 
-    hal.console->printf("_pid_vel_z.kP=%f\n",(float)_pid_vel_z.kP());
-    hal.console->printf("\n");
+    // hal.console->printf("_pid_vel_z.kP=%f\n",(float)_pid_vel_z.kP());
+    // hal.console->printf("\n");
 
     // add feed forward component
     // 添加前馈控件
@@ -995,6 +995,8 @@ void AC_PosControl::update_z_controller()
     const float z_accel_meas = get_z_accel_cmss();
 
     // ensure imax is always large enough to overpower hover throttle
+    // 确保imax总是大到足以压倒悬停油门
+    // _pid_accel_z:Z轴加速控制器转换所需的加速度到油门输出
     if (_motors.get_throttle_hover() * 1000.0f > _pid_accel_z.imax()) {
         _pid_accel_z.imax(_motors.get_throttle_hover() * 1000.0f);
     }
@@ -1007,6 +1009,11 @@ void AC_PosControl::update_z_controller()
     }
     thr_out += _motors.get_throttle_hover();
 
+    // hal.console->printf("_pid_accel_z.kP=%f\n",(float)_pid_accel_z.kP());
+    // hal.console->printf("_pid_accel_z.kP=%f\n",(float)_pid_accel_z.kI());
+    // hal.console->printf("_pid_accel_z.kP=%f\n",(float)_pid_accel_z.kD());
+    // hal.console->printf("_pid_accel_z.kP=%f\n",(float)_pid_accel_z.kIMAX());
+    // hal.console->printf("\n");
     // Actuator commands
 
     // send throttle to attitude controller with angle boost
