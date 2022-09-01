@@ -960,6 +960,7 @@ void AC_PosControl::update_z_controller()
     // 计算目标速度修正
     float pos_target_zf = _pos_target.z;
 
+    // Z轴位置控制器，将高度误差转换为期望爬升率
     _vel_target.z = _p_pos_z.update_all(pos_target_zf, curr_alt, _limit.pos_down, _limit.pos_up);
     _vel_target.z *= AP::ahrs_navekf().getEkfControlScaleZ();
 
@@ -975,8 +976,12 @@ void AC_PosControl::update_z_controller()
     // 速度控制器
 
     const Vector3f& curr_vel = _inav.get_velocity();
+    // Z轴速度控制器将爬升速率误差转换为所需加速度
     _accel_target.z = _pid_vel_z.update_all(_vel_target.z, curr_vel.z, _motors.limit.throttle_lower, _motors.limit.throttle_upper);
     _accel_target.z *= AP::ahrs_navekf().getEkfControlScaleZ();
+
+    hal.console->printf("_pid_vel_z.kP=%f\n",(float)_pid_vel_z.kP());
+    hal.console->printf("\n");
 
     // add feed forward component
     // 添加前馈控件
