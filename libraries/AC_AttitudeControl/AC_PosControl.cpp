@@ -1016,6 +1016,15 @@ void AC_PosControl::update_z_controller()
     // hal.console->printf("\n");
     // Actuator commands
 
+    // hal.console->printf("_p_pos_xy.kP=%f\n",(float)_p_pos_xy.kP());
+    // hal.console->printf("\n");
+
+    // hal.console->printf("_pid_vel_xy.kP=%f\n",(float)_pid_vel_xy.kP());
+    // hal.console->printf("_pid_vel_xy.kI=%f\n",(float)_pid_vel_xy.kI());
+    // hal.console->printf("_pid_vel_xy.kD=%f\n",(float)_pid_vel_xy.kD());
+    // hal.console->printf("_pid_vel_xy.IMX=%f\n",_pid_vel_xy.imax());
+    // hal.console->printf("\n");
+
     // send throttle to attitude controller with angle boost
     _attitude_control.set_throttle_out(thr_out, true, POSCONTROL_THROTTLE_CUTOFF_FREQ_HZ);
 
