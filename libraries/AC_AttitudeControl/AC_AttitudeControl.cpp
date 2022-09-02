@@ -1004,6 +1004,9 @@ Vector3f AC_AttitudeControl::update_ang_vel_target_from_att_error(const Vector3f
     // hal.console->printf("Pitch_P=%f\n",(float)_p_angle_pitch.kP());
     // hal.console->printf("Yaw_P=%f\n",(float)_p_angle_yaw.kP());
     // hal.console->printf("\n");
+
+    // hal.console->printf("_input_tc=%f\n",(float)_input_tc);
+    // hal.console->printf("\n");
     return rate_target_ang_vel;
 }
 
