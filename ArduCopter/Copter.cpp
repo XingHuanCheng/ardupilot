@@ -219,19 +219,24 @@ void Copter::get_scheduler_tasks(const AP_Scheduler::Task *&tasks,
 constexpr int8_t Copter::_failsafe_priorities[7];
 
 // Main loop - 400hz
+// 主循环 - 400Hz
 void Copter::fast_loop()
 {
     // update INS immediately to get current gyro data populated
+    // 立即更新INS(惯性导航系统)，为了得到当前安装的气压计数据
     ins.update();
 
     // run low level rate controllers that only require IMU data
+    // 运行低等级的只需要IMU(惯性测量单元)数据的速率控制器
     attitude_control->rate_controller_run();
 
     // send outputs to the motors library immediately
+    // 立即发送输出到电机库
     motors_output();
 
     // run EKF state estimator (expensive)
     // --------------------
+    // 运行EKF状态估计(昂贵的)
     read_AHRS();
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -243,18 +248,23 @@ void Copter::fast_loop()
 
     // Inertial Nav
     // --------------------
+    // 惯性导航
     read_inertia();
 
     // check if ekf has reset target heading or position
+    // 检查ekf是否复位目标航向或位置
     check_ekf_reset();
 
     // run the attitude controllers
+    // 运行姿态控制器
     update_flight_mode();
 
     // update home from EKF if necessary
+    // 如有必要从EKF更新home
     update_home_from_EKF();
 
     // check if we've landed or crashed
+    // 检查我们是否着陆或坠毁
     update_land_and_crash_detectors();
 
 #if HAL_MOUNT_ENABLED
@@ -263,6 +273,7 @@ void Copter::fast_loop()
 #endif
 
     // log sensor health
+    // 日志传感器健康
     if (should_log(MASK_LOG_ANY)) {
         Log_Sensor_Health();
     }
@@ -272,9 +283,11 @@ void Copter::fast_loop()
 
 #ifdef ENABLE_SCRIPTING
 // start takeoff to given altitude (for use by scripting)
+// 给予高度开始起飞（供脚本使用）
 bool Copter::start_takeoff(float alt)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
@@ -287,9 +300,11 @@ bool Copter::start_takeoff(float alt)
 }
 
 // set target location (for use by scripting)
+// 设置目标地点（供脚本使用）
 bool Copter::set_target_location(const Location& target_loc)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
@@ -298,9 +313,11 @@ bool Copter::set_target_location(const Location& target_loc)
 }
 
 // set target position (for use by scripting)
+// 设置目标位置（供脚本使用）
 bool Copter::set_target_pos_NED(const Vector3f& target_pos, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative, bool terrain_alt)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
@@ -311,9 +328,11 @@ bool Copter::set_target_pos_NED(const Vector3f& target_pos, bool use_yaw, float 
 }
 
 // set target position and velocity (for use by scripting)
+// 设置目标位置和速度（供脚本使用）
 bool Copter::set_target_posvel_NED(const Vector3f& target_pos, const Vector3f& target_vel)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
@@ -325,9 +344,11 @@ bool Copter::set_target_posvel_NED(const Vector3f& target_pos, const Vector3f& t
 }
 
 // set target position, velocity and acceleration (for use by scripting)
+// 设置目标位置，速度和加速度（供脚本使用）
 bool Copter::set_target_posvelaccel_NED(const Vector3f& target_pos, const Vector3f& target_vel, const Vector3f& target_accel, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
@@ -342,25 +363,30 @@ bool Copter::set_target_posvelaccel_NED(const Vector3f& target_pos, const Vector
 bool Copter::set_target_velocity_NED(const Vector3f& vel_ned)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
 
     // convert vector to neu in cm
+    // 将向量转换为neu, 单位为cm
     const Vector3f vel_neu_cms(vel_ned.x * 100.0f, vel_ned.y * 100.0f, -vel_ned.z * 100.0f);
     mode_guided.set_velocity(vel_neu_cms);
     return true;
 }
 
 // set target velocity and acceleration (for use by scripting)
+// 设置目标速度和加速度（供脚本使用）
 bool Copter::set_target_velaccel_NED(const Vector3f& target_vel, const Vector3f& target_accel, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool relative_yaw)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
 
     // convert vector to neu in cm
+    // 将向量转换为neu, 单位为cm
     const Vector3f vel_neu_cms(target_vel.x * 100.0f, target_vel.y * 100.0f, -target_vel.z * 100.0f);
     const Vector3f accel_neu_cms(target_accel.x * 100.0f, target_accel.y * 100.0f, -target_accel.z * 100.0f);
 
@@ -371,6 +397,7 @@ bool Copter::set_target_velaccel_NED(const Vector3f& target_vel, const Vector3f&
 bool Copter::set_target_angle_and_climbrate(float roll_deg, float pitch_deg, float yaw_deg, float climb_rate_ms, bool use_yaw_rate, float yaw_rate_degs)
 {
     // exit if vehicle is not in Guided mode or Auto-Guided mode
+    // 如果载具不是引导模式或自动引导模式就退出
     if (!flightmode->in_guided_mode()) {
         return false;
     }
@@ -383,6 +410,7 @@ bool Copter::set_target_angle_and_climbrate(float roll_deg, float pitch_deg, flo
 }
 
 // circle mode controls
+// 绕圈模式控制
 bool Copter::get_circle_radius(float &radius_m)
 {
     radius_m = circle_nav->get_radius() * 0.01f;
@@ -400,22 +428,27 @@ bool Copter::set_circle_rate(float rate_dps)
 
 // rc_loops - reads user input from transmitter/receiver
 // called at 100hz
+// 从发射机/接收机读取用户输入，100hz的调用速度
 void Copter::rc_loop()
 {
     // Read radio and 3-position switch on radio
     // -----------------------------------------
+    // 读取无线电和在无线电上的三位开关
     read_radio();
     rc().read_mode_switch();
 }
 
 // throttle_loop - should be run at 50 hz
 // ---------------------------
+// 应该运行在50Hz
 void Copter::throttle_loop()
 {
     // update throttle_low_comp value (controls priority of throttle vs attitude control)
+    // 更新油门比较起来的低值（油门控制优先级 vs 姿态控制优先级）
     update_throttle_mix();
 
     // check auto_armed status
+    // 检查自动上锁的状态
     update_auto_armed();
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -427,19 +460,23 @@ void Copter::throttle_loop()
 #endif
 
     // compensate for ground effect (if enabled)
+    // 补偿地面效应（如果使能）
     update_ground_effect_detector();
     update_ekf_terrain_height_stable();
 }
 
 // update_batt_compass - read battery and compass
 // should be called at 10hz
+// 读取电池和磁罗盘，应该被调用在10Hz
 void Copter::update_batt_compass(void)
 {
     // read battery before compass because it may be used for motor interference compensation
+    // 在磁罗盘之前先读取电池，因为它可能被用于电机的干扰补偿
     battery.read();
 
     if(AP::compass().enabled()) {
         // update compass with throttle value - used for compassmot
+        // 更新磁罗盘，同时要考虑油门值----用于磁罗盘运动
         compass.set_throttle(motors->get_throttle());
         compass.set_voltage(battery.voltage());
         compass.read();
@@ -448,6 +485,7 @@ void Copter::update_batt_compass(void)
 
 // Full rate logging of attitude, rate and pid loops
 // should be run at 400hz
+// 满速率记录姿态，速率和PID循环----应该运行在400Hz
 void Copter::fourhundred_hz_logging()
 {
     if (should_log(MASK_LOG_ATTITUDE_FAST) && !copter.flightmode->logs_attitude()) {
@@ -457,13 +495,16 @@ void Copter::fourhundred_hz_logging()
 
 // ten_hz_logging_loop
 // should be run at 10hz
+// 10Hz的日志记录循环，应该运行在10Hz
 void Copter::ten_hz_logging_loop()
 {
     // log attitude data if we're not already logging at the higher rate
+    // 如果我们在更高速率时还没有记录日志，记录姿态数据
     if (should_log(MASK_LOG_ATTITUDE_MED) && !should_log(MASK_LOG_ATTITUDE_FAST) && !copter.flightmode->logs_attitude()) {
         Log_Write_Attitude();
     }
     // log EKF attitude data
+    // 记录EKF姿态数据
     if (should_log(MASK_LOG_ATTITUDE_MED) || should_log(MASK_LOG_ATTITUDE_FAST)) {
         Log_Write_EKF_POS();
     }
@@ -505,6 +546,7 @@ void Copter::ten_hz_logging_loop()
 }
 
 // twentyfive_hz_logging - should be run at 25hz
+// 25Hz的日志记录循环，应该运行在25Hz
 void Copter::twentyfive_hz_logging()
 {
     if (should_log(MASK_LOG_ATTITUDE_FAST)) {
@@ -518,34 +560,42 @@ void Copter::twentyfive_hz_logging()
 #if MODE_AUTOROTATE_ENABLED == ENABLED
     if (should_log(MASK_LOG_ATTITUDE_MED) || should_log(MASK_LOG_ATTITUDE_FAST)) {
         //update autorotation log
+        // 更新自动旋转的日志
         g2.arot.Log_Write_Autorotation();
     }
 #endif
 }
 
 // three_hz_loop - 3.3hz loop
+// 3Hz的循环，应该运行在3.3Hz
 void Copter::three_hz_loop()
 {
     // check if we've lost contact with the ground station
+    // 检查我们是否已经和地面站丢失联系
     failsafe_gcs_check();
 
     // check if we've lost terrain data
+    // 检查我们是否已经丢失地形数据
     failsafe_terrain_check();
 
 #if AC_FENCE == ENABLED
     // check if we have breached a fence
+    // 检测我们是否突破了栅栏
     fence_check();
 #endif // AC_FENCE_ENABLED
 
 
     // update ch6 in flight tuning
+    // 更新ch6在飞行调优
     tuning();
 
     // check if avoidance should be enabled based on alt
+    // 检查规避是否应该基于定高
     low_alt_avoidance();
 }
 
 // one_hz_loop - runs at 1Hz
+// 1Hz的循环，应该运行在1Hz
 void Copter::one_hz_loop()
 {
     if (should_log(MASK_LOG_ANY)) {
@@ -556,11 +606,13 @@ void Copter::one_hz_loop()
 
     if (!motors->armed()) {
         // make it possible to change ahrs orientation at runtime during initial config
+        // 使在初始配置的运行时间，可以改变ahrs方向
         ahrs.update_orientation();
 
         update_using_interlock();
 
         // check the user hasn't updated the frame class or type
+        // 检查用户是否已经更新了机架类型
         motors->set_frame_class_and_type((AP_Motors::motor_frame_class)g2.frame_class.get(), (AP_Motors::motor_frame_type)g.frame_type.get());
 
 #if FRAME_CONFIG != HELI_FRAME
@@ -570,9 +622,11 @@ void Copter::one_hz_loop()
     }
 
     // update assigned functions and enable auxiliary servos
+    // 更新指定的函数和使能备用伺服电机
     SRV_Channels::enable_aux_servos();
 
     // log terrain data
+    // 记录地形数据
     terrain_logging();
 
 #if HAL_ADSB_ENABLED
@@ -585,50 +639,60 @@ void Copter::one_hz_loop()
 void Copter::init_simple_bearing()
 {
     // capture current cos_yaw and sin_yaw values
+    // 捕获当前的cos_yaw和sin_yaw值
     simple_cos_yaw = ahrs.cos_yaw();
     simple_sin_yaw = ahrs.sin_yaw();
 
     // initialise super simple heading (i.e. heading towards home) to be 180 deg from simple mode heading
+    // 初始化超简单航向(即朝着家方向)为与简单模式航向180度
     super_simple_last_bearing = wrap_360_cd(ahrs.yaw_sensor+18000);
     super_simple_cos_yaw = simple_cos_yaw;
     super_simple_sin_yaw = simple_sin_yaw;
 
     // log the simple bearing
+    // 记录简单轴承
     if (should_log(MASK_LOG_ANY)) {
         Log_Write_Data(LogDataID::INIT_SIMPLE_BEARING, ahrs.yaw_sensor);
     }
 }
 
 // update_simple_mode - rotates pilot input if we are in simple mode
+// 更新简单模式 - 在如果我们在简单模式下，转动飞行员输入
 void Copter::update_simple_mode(void)
 {
     float rollx, pitchx;
 
     // exit immediately if no new radio frame or not in simple mode
+    // 如果没有新的无线电帧或者不在简单模式
     if (simple_mode == SimpleMode::NONE || !ap.new_radio_frame) {
         return;
     }
 
     // mark radio frame as consumed
+    // 将无线电帧标记为已消耗
     ap.new_radio_frame = false;
 
     if (simple_mode == SimpleMode::SIMPLE) {
         // rotate roll, pitch input by -initial simple heading (i.e. north facing)
+        // 通过初始化简单的朝向转动翻滚，俯仰（例如：朝北）
         rollx = channel_roll->get_control_in()*simple_cos_yaw - channel_pitch->get_control_in()*simple_sin_yaw;
         pitchx = channel_roll->get_control_in()*simple_sin_yaw + channel_pitch->get_control_in()*simple_cos_yaw;
     }else{
         // rotate roll, pitch input by -super simple heading (reverse of heading to home)
+        // 通过超简单朝向转动翻滚，俯仰（与朝家方向相反）
         rollx = channel_roll->get_control_in()*super_simple_cos_yaw - channel_pitch->get_control_in()*super_simple_sin_yaw;
         pitchx = channel_roll->get_control_in()*super_simple_sin_yaw + channel_pitch->get_control_in()*super_simple_cos_yaw;
     }
 
     // rotate roll, pitch input from north facing to vehicle's perspective
+    // 旋转滚转，俯仰输入从北面到车辆的角度
     channel_roll->set_control_in(rollx*ahrs.cos_yaw() + pitchx*ahrs.sin_yaw());
     channel_pitch->set_control_in(-rollx*ahrs.sin_yaw() + pitchx*ahrs.cos_yaw());
 }
 
 // update_super_simple_bearing - adjusts simple bearing based on location
 // should be called after home_bearing has been updated
+// 调整简单的导向基于地点，在朝家方向更新之后应该被调用
 void Copter::update_super_simple_bearing(bool force_update)
 {
     if (!force_update) {
@@ -643,6 +707,7 @@ void Copter::update_super_simple_bearing(bool force_update)
     const int32_t bearing = home_bearing();
 
     // check the bearing to home has changed by at least 5 degrees
+    // 检查朝家方向是否改变了至少5度
     if (labs(super_simple_last_bearing - bearing) < 500) {
         return;
     }
@@ -656,13 +721,16 @@ void Copter::update_super_simple_bearing(bool force_update)
 void Copter::read_AHRS(void)
 {
     // we tell AHRS to skip INS update as we have already done it in fast_loop()
+    // 我们告诉AHRS跳过INS更新，就像我们在fast_loop()中已经做的那样
     ahrs.update(true);
 }
 
 // read baro and log control tuning
+// 读取气压和日志控制调优
 void Copter::update_altitude()
 {
     // read in baro altitude
+    // 读取气压高度
     read_barometer();
 
     if (should_log(MASK_LOG_CTUN)) {
@@ -676,6 +744,7 @@ void Copter::update_altitude()
 }
 
 // vehicle specific waypoint info helpers
+// 载具特定路径点信息助手
 bool Copter::get_wp_distance_m(float &distance) const
 {
     // see GCS_MAVLINK_Copter::send_nav_controller_output()
@@ -684,6 +753,7 @@ bool Copter::get_wp_distance_m(float &distance) const
 }
 
 // vehicle specific waypoint info helpers
+// 载具特定路径点信息助手
 bool Copter::get_wp_bearing_deg(float &bearing) const
 {
     // see GCS_MAVLINK_Copter::send_nav_controller_output()
@@ -692,6 +762,7 @@ bool Copter::get_wp_bearing_deg(float &bearing) const
 }
 
 // vehicle specific waypoint info helpers
+// 载具特定路径点信息助手
 bool Copter::get_wp_crosstrack_error_m(float &xtrack_error) const
 {
     // see GCS_MAVLINK_Copter::send_nav_controller_output()
@@ -702,6 +773,7 @@ bool Copter::get_wp_crosstrack_error_m(float &xtrack_error) const
 /*
   constructor for main Copter class
  */
+// 构造函数
 Copter::Copter(void)
     : logger(g.log_bitmask),
     flight_modes(&g.flight_mode1),
@@ -714,6 +786,7 @@ Copter::Copter(void)
     flightmode(&mode_stabilize)
 {
     // init sensor error logging flags
+    // 初始化传感器错误记录标志
     sensor_health.baro = true;
     sensor_health.compass = true;
 }

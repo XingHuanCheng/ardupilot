@@ -26,6 +26,7 @@ Mode::Mode(void) :
 { };
 
 // return the static controller object corresponding to supplied mode
+// 返回相应支持模式一致的静态控制器对象
 Mode *Copter::mode_from_mode_num(const Mode::Number mode)
 {
     Mode *ret = nullptr;
