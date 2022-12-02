@@ -190,10 +190,13 @@ void AP_Vehicle::loop()
           briefly driving a servo to a position out of the configured
           range which could damage hardware
         */
+        // 如有要求，取消安全措施。这被延迟到第一个循环运行后，以确保所有的伺服收到了一个更新的初始值
+        // 否则，我们可能会短暂地驱动伺服到配置范围之外的位置，这可能会损坏硬件
         done_safety_init = true;
         BoardConfig.init_safety();
 
         // send RC output mode info if available
+        // 发送RC输出模式信息(如果可用)
         char banner_msg[50];
         if (hal.rcout->get_output_mode_banner(banner_msg, sizeof(banner_msg))) {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s", banner_msg);
