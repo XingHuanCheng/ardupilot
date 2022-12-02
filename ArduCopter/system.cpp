@@ -18,6 +18,7 @@ void Copter::init_ardupilot()
 
 #if STATS_ENABLED == ENABLED
     // initialise stats module
+    // 初始化stats模块
     g2.stats.init();
 #endif
 
@@ -27,6 +28,7 @@ void Copter::init_ardupilot()
 #endif
 
     // init cargo gripper
+    // 初始化货物夹具
 #if GRIPPER_ENABLED == ENABLED
     g2.gripper.init();
 #endif
@@ -36,23 +38,28 @@ void Copter::init_ardupilot()
 #endif
 
     // init winch
+    // 初始化绞盘
 #if WINCH_ENABLED == ENABLED
     g2.winch.init();
 #endif
 
     // initialise notify system
+    // 初始化通知系统
     notify.init();
     notify_flight_mode();
 
     // initialise battery monitor
+    // 初始化电池监控器
     battery.init();
 
     // Init RSSI
+    // 初始化接收信号强度指示器
     rssi.init();
     
     barometer.init();
 
     // setup telem slots with serial ports
+    // 设置带有串行端口的遥感插槽
     gcs().setup_uarts();
 
 #if OSD_ENABLED == ENABLED
@@ -64,6 +71,7 @@ void Copter::init_ardupilot()
 #endif
 
     // update motor interlock state
+    // 更新电机互锁状态
     update_using_interlock();
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -74,21 +82,26 @@ void Copter::init_ardupilot()
     input_manager.set_loop_rate(scheduler.get_loop_rate_hz());
 #endif
 
-    init_rc_in();               // sets up rc channels from radio
+    init_rc_in();               // sets up rc channels from radio --- 设置从无线电来的rc通道
 
     // allocate the motors class
+    // 分配电机类
     allocate_motors();
 
     // initialise rc channels including setting mode
+    // 初始化rc通道包括设置模式
     rc().init();
 
     // sets up motors and output to escs
+    // 设置电机和到电调的输出
     init_rc_out();
 
     // check if we should enter esc calibration mode
+    // 检查我们是否进入了电调校准模式
     esc_calibration_startup_check();
 
     // motors initialised so parameters can be sent
+    // 电机初始化完成，参数可以发送
     ap.initialised_params = true;
 
     relay.init();
@@ -97,9 +110,11 @@ void Copter::init_ardupilot()
      *  setup the 'main loop is dead' check. Note that this relies on
      *  the RC library being initialised.
      */
+    // 设置'主循环死亡'检查。注意，这依赖于RC库已经被初始化
     hal.scheduler->register_timer_failsafe(failsafe_check_static, 1000);
 
     // Do GPS init
+    // GPS 初始化
     gps.set_log_gps_bit(MASK_LOG_GPS);
     gps.init(serial_manager);
 
@@ -107,6 +122,7 @@ void Copter::init_ardupilot()
     AP::compass().init();
 
     // init Location class
+    // 初始化地点类
 #if AP_TERRAIN_AVAILABLE && AC_TERRAIN
     Location::set_terrain(&terrain);
     wp_nav->set_terrain(&terrain);
@@ -120,21 +136,25 @@ void Copter::init_ardupilot()
 
 #if OPTFLOW == ENABLED
     // initialise optical flow sensor
+    // 初始化光流传感器
     optflow.init(MASK_LOG_OPTFLOW);
 #endif      // OPTFLOW == ENABLED
 
 #if HAL_MOUNT_ENABLED
     // initialise camera mount
+    // 初始化相机挂载
     camera_mount.init();
 #endif
 
 #if PRECISION_LANDING == ENABLED
     // initialise precision landing
+    // 初始化精准着陆
     init_precland();
 #endif
 
 #if LANDING_GEAR_ENABLED == ENABLED
     // initialise landing gear position
+    // 初始化起落架位置
     landinggear.init();
 #endif
 
@@ -144,36 +164,44 @@ void Copter::init_ardupilot()
 
     // read Baro pressure at ground
     //-----------------------------
+    // 读取地面气压
     barometer.set_log_baro_bit(MASK_LOG_IMU);
     barometer.calibrate();
 
     // initialise rangefinder
+    // 初始化测距仪
     init_rangefinder();
 
     // init proximity sensor
+    // 初始化接近传感器
     init_proximity();
 
 #if BEACON_ENABLED == ENABLED
     // init beacons used for non-gps position estimation
+    // 初始化北醒的用于非GPS位置估计的设备
     g2.beacon.init();
 #endif
 
 #if RPM_ENABLED == ENABLED
     // initialise AP_RPM library
+    // 初始化转速传感器库
     rpm_sensor.init();
 #endif
 
 #if MODE_AUTO_ENABLED == ENABLED
     // initialise mission library
+    // 初始化任务库
     mode_auto.mission.init();
 #endif
 
 #if MODE_SMARTRTL_ENABLED == ENABLED
     // initialize SmartRTL
+    // 初始化SmartRTL
     g2.smart_rtl.init();
 #endif
 
     // initialise AP_Logger library
+    // 初始化日志记载库
     logger.setVehicle_Startup_Writer(FUNCTOR_BIND(&copter, &Copter::Log_Write_Vehicle_Startup_Messages, void));
 
     startup_INS_ground();
@@ -183,32 +211,39 @@ void Copter::init_ardupilot()
 #endif // ENABLE_SCRIPTING
 
     // set landed flags
+    // 设置着陆标志
     set_land_complete(true);
     set_land_complete_maybe(true);
 
     // we don't want writes to the serial port to cause us to pause
     // mid-flight, so set the serial ports non-blocking once we are
     // ready to fly
+    // 我们不想
     serial_manager.set_blocking_writes_all(false);
 
     // enable CPU failsafe
+    // 启用CPU故障保护功能
     failsafe_enable();
 
     ins.set_log_raw_bit(MASK_LOG_IMU_RAW);
 
     // enable output to motors
+    // 使能输出到电机
     if (arming.rc_calibration_checks(true)) {
         enable_motor_output();
     }
 
     // attempt to set the intial_mode, else set to STABILIZE
+    // 尝试设置intial_mode，否则设置为增稳
     if (!set_mode((enum Mode::Number)g.initial_mode.get(), ModeReason::INITIALISED)) {
         // set mode to STABILIZE will trigger mode change notification to pilot
+        // 设置模式到增稳会触发模式改变通知给飞手
         set_mode(Mode::Number::STABILIZE, ModeReason::UNAVAILABLE);
         AP_Notify::events.user_mode_change_failed = 1;
     }
 
     // flag that initialisation has completed
+    // 初始化已经完成的标志
     ap.initialised = true;
 }
 
