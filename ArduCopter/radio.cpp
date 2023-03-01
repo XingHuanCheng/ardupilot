@@ -85,13 +85,15 @@ void Copter::read_radio()
     if (rc().read_input()) {
         ap.new_radio_frame = true;
 
-        set_throttle_and_failsafe(channel_throttle->get_radio_in());
-        set_throttle_zero_flag(channel_throttle->get_control_in());
+        set_throttle_and_failsafe(channel_throttle->get_radio_in()); // 检查油门值是否过小（默认值975），如果过小打开故障安全之无线接收（接收机）
+        set_throttle_zero_flag(channel_throttle->get_control_in()); // 
 
         // RC receiver must be attached if we've just got input
+        // 如果我们刚刚得到输入，RC接收器必须连接
         ap.rc_receiver_present = true;
 
         // pass pilot input through to motors (used to allow wiggling servos while disarmed on heli, single, coax copters)
+        // 将先导输入通过电机（用于允许摆动伺服而解除武装的直升机，单，共轴直升机）
         radio_passthrough_to_motors();
 
         const float dt = (tnow_ms - last_radio_update_ms)*1.0e-3f;
@@ -101,6 +103,7 @@ void Copter::read_radio()
     }
 
     // No radio input this time
+    // 此刻没有无线接收（接收机）输入
     if (failsafe.radio) {
         // already in failsafe!
         return;
@@ -108,6 +111,7 @@ void Copter::read_radio()
 
     const uint32_t elapsed = tnow_ms - last_radio_update_ms;
     // turn on throttle failsafe if no update from the RC Radio for 500ms or 2000ms if we are using RC_OVERRIDE
+    // 在我们正在使用RC_OVERRIDE情况下，如果500ms或者2000ms从RC接收机处没有更新，打开油门故障安全机制
     const uint32_t timeout = RC_Channels::has_active_overrides() ? FS_RADIO_RC_OVERRIDE_TIMEOUT_MS : FS_RADIO_TIMEOUT_MS;
     if (elapsed < timeout) {
         // not timed out yet
@@ -115,10 +119,12 @@ void Copter::read_radio()
     }
     if (!g.failsafe_throttle) {
         // throttle failsafe not enabled
+        // 油门故障安全没有被使能
         return;
     }
     if (!ap.rc_receiver_present && !motors->armed()) {
         // we only failsafe if we are armed OR we have ever seen an RC receiver
+        // 如果我们现在在上锁或者我们还没有接收到接收机，仍然处于故障安全的状态
         return;
     }
 
@@ -131,32 +137,38 @@ void Copter::read_radio()
 void Copter::set_throttle_and_failsafe(uint16_t throttle_pwm)
 {
     // if failsafe not enabled pass through throttle and exit
+    //如果故障安全机制没有使能，通过油门并退出
     if(g.failsafe_throttle == FS_THR_DISABLED) {
         return;
     }
 
     //check for low throttle value
+    //检查低油门值，如果小于参数表设定值
     if (throttle_pwm < (uint16_t)g.failsafe_throttle_value) {
 
         // if we are already in failsafe or motors not armed pass through throttle and exit
+        // 如果我们已经处于故障安全机制或者电机没有解锁，通过油门，然后退出
         if (failsafe.radio || !(ap.rc_receiver_present || motors->armed())) {
             return;
         }
 
         // check for 3 low throttle values
         // Note: we do not pass through the low throttle until 3 low throttle values are received
+        // 检查3个低油门值。笔记：我们没有通过低油门值，直到3个低油门值被收到
         failsafe.radio_counter++;
         if( failsafe.radio_counter >= FS_COUNTER ) {
-            failsafe.radio_counter = FS_COUNTER;  // check to ensure we don't overflow the counter
+            failsafe.radio_counter = FS_COUNTER;  // check to ensure we don't overflow the counter 检查确认我们没有计数器下溢
             set_failsafe_radio(true);
         }
     }else{
         // we have a good throttle so reduce failsafe counter
+        // 我们有一个合适的油门，所以减小故障安全计数器
         failsafe.radio_counter--;
         if( failsafe.radio_counter <= 0 ) {
             failsafe.radio_counter = 0;   // check to ensure we don't underflow the counter
 
             // disengage failsafe after three (nearly) consecutive valid throttle values
+            // 在接近三次连续有效油门值之后，解除故障安全
             if (failsafe.radio) {
                 set_failsafe_radio(false);
             }

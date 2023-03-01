@@ -912,7 +912,7 @@ void AP_GPS::update_instance(uint8_t instance)
 }
 
 /*
-  update all GPS instances
+  update all GPS instances 更新所有GPS实例
  */
 void AP_GPS::update(void)
 {
@@ -939,7 +939,7 @@ void AP_GPS::update(void)
 }
 
 /*
-  update primary GPS instance
+  update primary GPS instance 更新首要的GPS实例
  */
 void AP_GPS::update_primary(void)
 {

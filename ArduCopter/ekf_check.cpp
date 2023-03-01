@@ -19,13 +19,14 @@
 // EKF_check structure
 ////////////////////////////////////////////////////////////////////////////////
 static struct {
-    uint8_t fail_count;         // number of iterations ekf or dcm have been out of tolerances
-    uint8_t bad_variance : 1;   // true if ekf should be considered untrusted (fail_count has exceeded EKF_CHECK_ITERATIONS_MAX)
-    bool has_ever_passed;       // true if the ekf checks have ever passed
-    uint32_t last_warn_time;    // system time of last warning in milliseconds.  Used to throttle text warnings sent to GCS
+    uint8_t fail_count;         // number of iterations ekf or dcm have been out of tolerances // EKF或者DCM的迭代次数已经超过公差
+    uint8_t bad_variance : 1;   // true if ekf should be considered untrusted (fail_count has exceeded EKF_CHECK_ITERATIONS_MAX) // 如果EKF被认为是不可信的为真（fail_count已经超过了EKF_CHECK_ITERATIONS_MAX）
+    bool has_ever_passed;       // true if the ekf checks have ever passed // 如果EKF检查已经通过为真
+    uint32_t last_warn_time;    // system time of last warning in milliseconds.  Used to throttle text warnings sent to GCS // 上一次警告的系统时间(以毫秒为单位)。用来限制发送给gc的文本警告
 } ekf_check_state;
 
 // ekf_check - detects if ekf variance are out of tolerance and triggers failsafe
+// ekf_check - 检测EKF方差是否已经超过公差，然后触发故障安全
 // should be called at 10hz
 void Copter::ekf_check()
 {
@@ -33,12 +34,14 @@ void Copter::ekf_check()
     static_assert(EKF_CHECK_ITERATIONS_MAX >= 7, "EKF_CHECK_ITERATIONS_MAX must be at least 7");
 
     // exit immediately if ekf has no origin yet - this assumes the origin can never become unset
+    // 如果EKF还没有原点立即退出 - 这假设原点永远不会被取消
     Location temp_loc;
     if (!ahrs.get_origin(temp_loc)) {
         return;
     }
 
     // return immediately if ekf check is disabled
+    // 如果EKF检查未被使能，立即返回
     if (g.fs_ekf_thresh <= 0.0f) {
         ekf_check_state.fail_count = 0;
         ekf_check_state.bad_variance = false;
@@ -49,39 +52,48 @@ void Copter::ekf_check()
 
     // compare compass and velocity variance vs threshold and also check
     // if we has a position estimate
+    // 比较磁罗盘和速度方差 vs 阈值，如果我们由一个位置估算还要检查
     const bool over_threshold = ekf_over_threshold();
     const bool has_position = ekf_has_relative_position() || ekf_has_absolute_position();
     const bool checks_passed = !over_threshold && has_position;
 
     // return if ekf checks have never passed
+    // 如果EKF检查从未通过，则返回
     ekf_check_state.has_ever_passed |= checks_passed;
     if (!ekf_check_state.has_ever_passed) {
         return;
     }
 
     // increment or decrement counters and take action
+    // 递增或递减计数器并采取操作
     if (!checks_passed) {
         // if compass is not yet flagged as bad
+        // 如果磁罗盘还没有标记为坏
         if (!ekf_check_state.bad_variance) {
-            // increase counter
+            // increase counter // 增加计数器
             ekf_check_state.fail_count++;
             if (ekf_check_state.fail_count == (EKF_CHECK_ITERATIONS_MAX-2) && over_threshold) {
                 // we are two iterations away from declaring an EKF failsafe, ask the EKF if we can reset
                 // yaw to resolve the issue
+                // 我们距离宣布一个EKF故障保护还有两个迭代，询问EKF我们是否可以重置偏航来解决问题
                 ahrs.request_yaw_reset();
             }
             if (ekf_check_state.fail_count == (EKF_CHECK_ITERATIONS_MAX-1)) {
                 // we are just about to declare a EKF failsafe, ask the EKF if we can
                 // change lanes to resolve the issue
+                // 我们正要宣布一个EKF故障保护，问问EKF我们是否可以换航线解决问题
                 ahrs.check_lane_switch();
             }
             // if counter above max then trigger failsafe
+            // 如果计数器高于Max，则触发故障保护
             if (ekf_check_state.fail_count >= EKF_CHECK_ITERATIONS_MAX) {
                 // limit count from climbing too high
+                // 限制计数器爬升太高
                 ekf_check_state.fail_count = EKF_CHECK_ITERATIONS_MAX;
                 ekf_check_state.bad_variance = true;
                 AP::logger().Write_Error(LogErrorSubsystem::EKFCHECK, LogErrorCode::EKFCHECK_BAD_VARIANCE);
                 // send message to gcs
+                // 发送信息到地面站
                 if ((AP_HAL::millis() - ekf_check_state.last_warn_time) > EKF_CHECK_WARNING_TIME) {
                     gcs().send_text(MAV_SEVERITY_CRITICAL,"EKF variance");
                     ekf_check_state.last_warn_time = AP_HAL::millis();
@@ -91,23 +103,28 @@ void Copter::ekf_check()
         }
     } else {
         // reduce counter
+        // 减小计数器
         if (ekf_check_state.fail_count > 0) {
             ekf_check_state.fail_count--;
 
             // if compass is flagged as bad and the counter reaches zero then clear flag
+            // 如果磁罗盘被标志为坏，积水达到0然后清除标志
             if (ekf_check_state.bad_variance && ekf_check_state.fail_count == 0) {
                 ekf_check_state.bad_variance = false;
                 AP::logger().Write_Error(LogErrorSubsystem::EKFCHECK, LogErrorCode::EKFCHECK_VARIANCE_CLEARED);
                 // clear failsafe
+                // 清除故障保护
                 failsafe_ekf_off_event();
             }
         }
     }
 
     // set AP_Notify flags
+    // 设置AP_Notify标志
     AP_Notify::flags.ekf_bad = ekf_check_state.bad_variance;
 
     // To-Do: add ekf variances to extended status
+    // To-Do: 添加EKF方差到拓展状态
 }
 
 // ekf_over_threshold - returns true if the ekf's variance are over the tolerance
@@ -150,9 +167,11 @@ bool Copter::ekf_over_threshold()
 
 
 // failsafe_ekf_event - perform ekf failsafe
+// failsafe_ekf_event - 执行EKF故障保护
 void Copter::failsafe_ekf_event()
 {
     // return immediately if ekf failsafe already triggered
+    // 如果EKF故障保护已经触发，立即返回
     if (failsafe.ekf) {
         return;
     }
@@ -167,6 +186,7 @@ void Copter::failsafe_ekf_event()
     }
 
     // sometimes LAND *does* require GPS so ensure we are in non-GPS land
+    // 有时着陆动作需要GPS，所以确定我们是在非GPS着陆
     if (flightmode->mode_number() == Mode::Number::LAND && landing_with_GPS()) {
         mode_land.do_not_use_GPS();
         return;
@@ -178,6 +198,7 @@ void Copter::failsafe_ekf_event()
     }
 
     // take action based on fs_ekf_action parameter
+    // 基于fs_ekf_action参数采取行动
     switch (g.fs_ekf_action) {
         case FS_EKF_ACTION_ALTHOLD:
             // AltHold
@@ -193,11 +214,13 @@ void Copter::failsafe_ekf_event()
     }
 
     // set true if ekf action is triggered
+    // 如果ekf行动触发，设置为真
     AP_Notify::flags.failsafe_ekf = true;
     gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF Failsafe: changed to %s Mode", flightmode->name());
 }
 
 // failsafe_ekf_off_event - actions to take when EKF failsafe is cleared
+// failsafe_ekf_off_event - 当EKF故障保护被清除的行动
 void Copter::failsafe_ekf_off_event(void)
 {
     // return immediately if not in ekf failsafe

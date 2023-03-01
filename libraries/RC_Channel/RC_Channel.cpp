@@ -437,6 +437,7 @@ void RC_Channel::read_mode_switch()
     int8_t position;
     if (read_6pos_switch(position)) {
         // set flight mode and simple mode setting
+        // 设置飞行模式和简单模式设置
         mode_switch_changed(modeswitch_pos_t(position));
     }
 }
